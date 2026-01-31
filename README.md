@@ -315,6 +315,23 @@ Résultat attendu (token vide, c'est normal) :
 | `HF_HUB_DISABLE_XET` | `1` | Désactive le téléchargeur expérimental xet (cause des erreurs réseau) |
 | `WHISPER_MODEL` | `large-v2` | Modèle Whisper par défaut (modifiable via RunPod) |
 
+### Téléchargement des modèles : HTTPS vs XET
+
+Par défaut, Hugging Face utilise des téléchargeurs expérimentaux (XET, hf_transfer) qui peuvent causer des problèmes dans Docker :
+
+```
+RuntimeError: CAS service error : ReqwestMiddleware Error: Request failed after 5 retries
+```
+
+**Solution appliquée** : On force l'utilisation du téléchargeur **HTTPS classique** :
+
+| Méthode | Avantages | Inconvénients |
+|---------|-----------|---------------|
+| **XET** (expérimental) | Plus rapide | Erreurs réseau dans Docker, problèmes SSL |
+| **HTTPS classique** | Stable, fiable, compatible partout | Un peu plus lent |
+
+Les variables `HF_HUB_ENABLE_HF_TRANSFER=0` et `HF_HUB_DISABLE_XET=1` désactivent les téléchargeurs expérimentaux et forcent l'utilisation de HTTPS, garantissant un téléchargement fiable des modèles pendant le build Docker.
+
 ### Langues supportées
 
 WhisperX supporte de nombreuses langues avec alignement automatique :
