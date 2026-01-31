@@ -175,6 +175,50 @@ curl -X POST "https://api.runpod.ai/v2/VOTRE_ENDPOINT_ID/runsync" \
   }'
 ```
 
+### 4.4 Test via le script Python
+
+Un script Python `test_transcription.py` est inclus pour tester facilement votre endpoint.
+
+**Configuration :**
+
+1. Copiez le fichier d'exemple et configurez vos identifiants :
+```bash
+cp .env.example .env
+```
+
+2. Éditez `.env` avec vos identifiants RunPod :
+```
+RUNPOD_API_KEY=votre_clé_api_runpod
+RUNPOD_ENDPOINT_ID=votre_endpoint_id
+```
+
+**Utilisation :**
+
+```bash
+# Transcription basique
+python3 test_transcription.py https://example.com/audio.mp3
+
+# Avec options
+python3 test_transcription.py https://example.com/audio.mp3 --language fr
+python3 test_transcription.py https://example.com/audio.mp3 --no-diarize
+python3 test_transcription.py https://example.com/audio.mp3 --min-speakers 2 --max-speakers 4
+
+# Sauvegarder le résultat en JSON
+python3 test_transcription.py https://example.com/audio.mp3 -o resultat.json
+```
+
+**Options disponibles :**
+
+| Option | Description |
+|--------|-------------|
+| `--language`, `-l` | Code langue (ex: `fr`, `en`) |
+| `--no-diarize` | Désactiver la diarisation |
+| `--min-speakers` | Nombre minimum de locuteurs |
+| `--max-speakers` | Nombre maximum de locuteurs |
+| `--output`, `-o` | Fichier de sortie JSON |
+
+> **Note** : Un fichier audio de test `audio.mp3` est inclus dans le repository pour vos tests locaux.
+
 ## Format de la requête
 
 ```json
@@ -267,6 +311,27 @@ Pour changer de modèle, modifiez la variable d'environnement `WHISPER_MODEL` da
 
 - Le Dockerfile désactive automatiquement le téléchargeur expérimental `xet` de Hugging Face qui peut causer des problèmes dans Docker.
 - Les variables `HF_HUB_ENABLE_HF_TRANSFER=0` et `HF_HUB_DISABLE_XET=1` sont déjà configurées.
+
+## Structure du projet
+
+```
+Whisperx-Runpod/
+├── handler.py           # Handler RunPod Serverless (point d'entrée)
+├── download_models.py   # Script de pré-téléchargement des modèles
+├── Dockerfile           # Image Docker pour RunPod
+├── test_transcription.py # Script de test Python
+├── .env.example         # Template de configuration
+├── audio.mp3            # Fichier audio de test
+└── README.md            # Cette documentation
+```
+
+| Fichier | Description |
+|---------|-------------|
+| `handler.py` | Handler principal qui reçoit les requêtes RunPod, télécharge l'audio, lance la transcription WhisperX avec alignement et diarisation |
+| `download_models.py` | Télécharge les modèles Whisper, alignement et diarisation pendant le build Docker pour accélérer le cold start |
+| `Dockerfile` | Construit l'image Docker avec CUDA 12.1, Python 3.10, WhisperX et toutes les dépendances |
+| `test_transcription.py` | Script CLI pour tester votre endpoint RunPod depuis votre machine locale |
+| `.env.example` | Template pour configurer `RUNPOD_API_KEY` et `RUNPOD_ENDPOINT_ID` |
 
 ## Notes techniques
 
