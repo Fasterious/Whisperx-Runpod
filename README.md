@@ -1,238 +1,108 @@
-# WhisperX sur RunPod - Guide Complet
+# WhisperX sur RunPod Serverless
 
-[![GitHub](https://img.shields.io/github/stars/Fasterious/Whisperx-Runpod?style=social)](https://github.com/Fasterious/Whisperx-Runpod)
-
-Ce guide vous permet de déployer WhisperX avec diarisation (identification des locuteurs) sur RunPod Serverless.
+Déployez WhisperX avec diarisation (identification des locuteurs) sur RunPod Serverless.
 
 ## Prérequis
 
 1. **Compte RunPod** : [runpod.io](https://runpod.io)
 2. **Compte Docker Hub** : [hub.docker.com](https://hub.docker.com)
-3. **Token Hugging Face** (pour la diarisation) : [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-4. **Docker Desktop** installé sur votre machine
+3. **Token Hugging Face** : [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+4. **Docker Desktop** installé
 
-## Étape 1 : Configuration Hugging Face (Obligatoire pour la diarisation)
+## Configuration Hugging Face
 
-### 1.1 Créer un token Hugging Face
+Avant de commencer, acceptez les conditions d'utilisation de ces modèles :
 
-1. Allez sur [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-2. Cliquez sur "New token"
-3. Nom : `whisperx-runpod`
-4. Type : `Read`
-5. Copiez le token (format : `hf_xxxxxxxxxxxx`)
+1. [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) → "Agree and access repository"
+2. [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) → "Agree and access repository"
 
-### 1.2 Accepter les conditions d'utilisation des modèles
-
-Vous devez accepter les conditions pour ces deux modèles :
-
-1. **Segmentation** : [huggingface.co/pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
-   - Cliquez sur "Agree and access repository"
-
-2. **Speaker Diarization** : [huggingface.co/pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
-   - Cliquez sur "Agree and access repository"
-
-## Étape 2 : Construction de l'image Docker
-
-### 2.1 Cloner le repository
+## Construction de l'image Docker
 
 ```bash
+# Cloner le repo
 git clone https://github.com/Fasterious/Whisperx-Runpod.git
 cd Whisperx-Runpod
-```
 
-### 2.2 Se connecter à Docker Hub
-
-```bash
+# Se connecter à Docker Hub
 docker login
+
+# Construire l'image (avec modèles pré-téléchargés - recommandé)
+docker build --platform linux/amd64 --build-arg HF_TOKEN=hf_votre_token -t VOTRE_USERNAME/whisperx-runpod:latest .
+
+# Pousser sur Docker Hub
+docker push VOTRE_USERNAME/whisperx-runpod:latest
 ```
 
-### 2.3 Construire l'image Docker
+> **Note Mac (Apple Silicon)** : L'option `--platform linux/amd64` est obligatoire.
 
-> **Note pour les utilisateurs Mac (Apple Silicon)** : L'option `--platform linux/amd64` est obligatoire car RunPod utilise des GPUs NVIDIA sur architecture x86_64.
-
-**Option A : Image légère** (modèles téléchargés au premier lancement sur RunPod)
-
-```bash
-docker build --platform linux/amd64 -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
-```
-
-- Image ~8-10 GB
-- Premier lancement : ~5-10 min (téléchargement des modèles)
-- Lancements suivants : rapides (modèles en cache sur le worker)
-
-**Option B : Image complète avec modèles pré-intégrés** (recommandé)
-
-```bash
-docker build --platform linux/amd64 --build-arg HF_TOKEN=hf_votre_token_ici -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
-```
-
-- Image ~15-18 GB (modèles Whisper + alignement + diarisation inclus)
-- **Tous les modèles sont dans l'image Docker** → pas de téléchargement sur RunPod
-- Démarrage immédiat, même sur un nouveau worker (cold start minimal)
-- Build plus long (~15-25 min) mais déploiement instantané
-
-> Remplacez `VOTRE_USERNAME_DOCKER` par votre nom d'utilisateur Docker Hub  
-> Remplacez `hf_votre_token_ici` par votre token Hugging Face
-
-### 2.4 Pousser l'image sur Docker Hub
-
-```bash
-docker push VOTRE_USERNAME_DOCKER/whisperx-runpod:latest
-```
-
-## Étape 3 : Configuration sur RunPod
-
-### 3.1 Créer un Template
+## Déploiement sur RunPod
 
 1. Allez sur [runpod.io/console/serverless](https://runpod.io/console/serverless)
-2. Cliquez sur **"Custom Templates"** dans le menu de gauche
-3. Cliquez sur **"New Template"**
-4. Remplissez :
-   - **Template Name** : `WhisperX Transcription`
-   - **Container Image** : `VOTRE_USERNAME_DOCKER/whisperx-runpod:latest`
-   - **Container Disk** : `20 GB` (pour stocker les modèles)
-5. Dans **Environment Variables**, ajoutez :
-   - `HF_TOKEN` = `hf_votre_token_ici`
-   - `WHISPER_MODEL` = `large-v2` (optionnel, c'est la valeur par défaut)
-6. Cliquez sur **"Save Template"**
+2. Créez un **Endpoint** avec :
+   - **Container Image** : `VOTRE_USERNAME/whisperx-runpod:latest`
+   - **Container Disk** : `20 GB`
+   - **GPU** : RTX 4090 ou RTX 3090
 
-### 3.2 Créer un Endpoint Serverless
+3. Ajoutez ces **variables d'environnement** :
+   - `HF_TOKEN` = `hf_votre_token`
+   - `WHISPER_MODEL` = `large-v3` *(recommandé pour de meilleurs résultats)*
 
-1. Cliquez sur **"Endpoints"** dans le menu de gauche
-2. Cliquez sur **"New Endpoint"**
-3. Configurez :
-   - **Endpoint Name** : `whisperx`
-   - **Select Template** : Choisissez `WhisperX Transcription`
-   - **GPU Type** : `NVIDIA RTX 4090` ou `NVIDIA RTX 3090` (recommandé)
-   - **Active Workers** : `0` (scale to zero quand inactif)
-   - **Max Workers** : `1` ou plus selon vos besoins
-   - **Idle Timeout** : `60` secondes
-   - **Execution Timeout** : `600` secondes (10 minutes max par requête)
-4. Cliquez sur **"Create Endpoint"**
+> **Important** : Le modèle par défaut dans l'image est `large-v2`. Pour de meilleurs résultats (moins d'erreurs en fin d'audio), définissez `WHISPER_MODEL=large-v3` dans les variables d'environnement RunPod.
 
-### 3.3 Récupérer l'API Key et l'Endpoint ID
+## Tester la transcription
 
-1. Dans la page de l'endpoint, notez :
-   - **Endpoint ID** : `xxxxxxxxxxxxxxxx`
-   - **API Key** : Allez dans Settings > API Keys
-
-## Étape 4 : Tester la transcription
-
-### 4.1 Test via l'interface RunPod
-
-1. Dans la page de votre endpoint, cliquez sur **"Requests"**
-2. Entrez ce JSON dans le champ de test :
-
-```json
-{
-  "input": {
-    "audio": "https://www.uclass.psychol.ucl.ac.uk/Release2/Conversation/AudioOnly/mp3/F_0811_10y6m_1.mp3"
-  }
-}
-```
-
-3. Cliquez sur **"Run"**
-4. Attendez le résultat (le premier lancement peut prendre quelques minutes pour charger les modèles)
-
-### 4.2 Test via cURL
+### Via le script Python inclus
 
 ```bash
-# Lancer une transcription (mode asynchrone)
-curl -X POST "https://api.runpod.ai/v2/VOTRE_ENDPOINT_ID/run" \
-  -H "Authorization: Bearer VOTRE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": {
-      "audio": "https://www.uclass.psychol.ucl.ac.uk/Release2/Conversation/AudioOnly/mp3/F_0811_10y6m_1.mp3"
-    }
-  }'
-```
-
-Réponse :
-```json
-{
-  "id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "status": "IN_QUEUE"
-}
-```
-
-```bash
-# Récupérer le résultat
-curl "https://api.runpod.ai/v2/VOTRE_ENDPOINT_ID/status/JOB_ID" \
-  -H "Authorization: Bearer VOTRE_API_KEY"
-```
-
-### 4.3 Test synchrone (attend le résultat)
-
-```bash
-curl -X POST "https://api.runpod.ai/v2/VOTRE_ENDPOINT_ID/runsync" \
-  -H "Authorization: Bearer VOTRE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": {
-      "audio": "https://www.uclass.psychol.ucl.ac.uk/Release2/Conversation/AudioOnly/mp3/F_0811_10y6m_1.mp3"
-    }
-  }'
-```
-
-### 4.4 Test via le script Python
-
-Un script Python `test_transcription.py` est inclus pour tester facilement votre endpoint.
-
-**Configuration :**
-
-1. Copiez le fichier d'exemple et configurez vos identifiants :
-```bash
+# Configurer les identifiants
 cp .env.example .env
-```
+# Éditer .env avec RUNPOD_API_KEY et RUNPOD_ENDPOINT_ID
 
-2. Éditez `.env` avec vos identifiants RunPod :
-```
-RUNPOD_API_KEY=votre_clé_api_runpod
-RUNPOD_ENDPOINT_ID=votre_endpoint_id
-```
-
-**Utilisation :**
-
-```bash
-# Transcription basique
+# Lancer un test
 python3 test_transcription.py https://example.com/audio.mp3
 
-# Avec options
-python3 test_transcription.py https://example.com/audio.mp3 --language fr
-python3 test_transcription.py https://example.com/audio.mp3 --no-diarize
-python3 test_transcription.py https://example.com/audio.mp3 --min-speakers 2 --max-speakers 4
-
-# Sauvegarder le résultat en JSON
-python3 test_transcription.py https://example.com/audio.mp3 -o resultat.json
+# Options disponibles
+python3 test_transcription.py URL --language fr
+python3 test_transcription.py URL --no-diarize
+python3 test_transcription.py URL --min-speakers 2 --max-speakers 4
+python3 test_transcription.py URL -o resultat.json
 ```
 
-**Options disponibles :**
+### Via cURL
 
-| Option | Description |
-|--------|-------------|
-| `--language`, `-l` | Code langue (ex: `fr`, `en`) |
-| `--no-diarize` | Désactiver la diarisation |
-| `--min-speakers` | Nombre minimum de locuteurs |
-| `--max-speakers` | Nombre maximum de locuteurs |
-| `--output`, `-o` | Fichier de sortie JSON |
+```bash
+# Lancer une transcription
+curl -X POST "https://api.runpod.ai/v2/ENDPOINT_ID/run" \
+  -H "Authorization: Bearer API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"input": {"audio": "https://example.com/audio.mp3"}}'
 
-> **Note** : Un fichier audio de test `audio.mp3` est inclus dans le repository pour vos tests locaux.
+# Récupérer le résultat
+curl "https://api.runpod.ai/v2/ENDPOINT_ID/status/JOB_ID" \
+  -H "Authorization: Bearer API_KEY"
+```
 
 ## Format de la requête
 
 ```json
 {
   "input": {
-    "audio": "https://example.com/audio.mp3",  // URL de l'audio (obligatoire)
-    "language": "fr",                           // Langue (optionnel, auto-détection par défaut)
-    "diarize": true,                            // Activer la diarisation (optionnel, true par défaut)
-    "min_speakers": 2,                          // Nombre min de locuteurs (optionnel)
-    "max_speakers": 4,                          // Nombre max de locuteurs (optionnel)
-    "batch_size": 16                            // Taille du batch (optionnel, 16 par défaut)
+    "audio": "https://example.com/audio.mp3",
+    "language": "fr",
+    "diarize": true,
+    "min_speakers": 2,
+    "max_speakers": 4
   }
 }
 ```
+
+| Paramètre | Description | Défaut |
+|-----------|-------------|--------|
+| `audio` | URL du fichier audio (obligatoire) | - |
+| `language` | Code langue (`fr`, `en`, etc.) | Auto-détection |
+| `diarize` | Activer la diarisation | `true` |
+| `min_speakers` | Nombre min de locuteurs | Auto |
+| `max_speakers` | Nombre max de locuteurs | Auto |
 
 ## Format de la réponse
 
@@ -240,187 +110,47 @@ python3 test_transcription.py https://example.com/audio.mp3 -o resultat.json
 {
   "status": "success",
   "output": {
-    "language": "en",
-    "text": "The complete transcription as plain text...",
-    "speaker_text": "[SPEAKER_00]: First speaker text...\n[SPEAKER_01]: Second speaker text...",
-    "segments": [
-      {
-        "start": 0.0,
-        "end": 2.5,
-        "text": " Hello, how are you?",
-        "speaker": "SPEAKER_00",
-        "words": [
-          {"word": "Hello", "start": 0.0, "end": 0.5, "score": 0.99},
-          {"word": "how", "start": 0.6, "end": 0.8, "score": 0.98}
-        ]
-      }
-    ],
-    "word_segments": [...]
+    "language": "fr",
+    "text": "Transcription complète...",
+    "speaker_text": "[SPEAKER_00]: Texte du premier locuteur...\n[SPEAKER_01]: Texte du second...",
+    "segments": [...]
   }
 }
 ```
 
-## Modèles Whisper disponibles
-
-| Modèle | VRAM requise | Vitesse | Qualité |
-|--------|--------------|---------|---------|
-| `tiny` | ~1 GB | Très rapide | Basse |
-| `base` | ~1 GB | Rapide | Moyenne |
-| `small` | ~2 GB | Moyen | Bonne |
-| `medium` | ~5 GB | Lent | Très bonne |
-| `large-v2` | ~10 GB | Lent | Excellente |
-| `large-v3` | ~10 GB | Lent | Excellente |
-
-Pour changer de modèle, modifiez la variable d'environnement `WHISPER_MODEL` dans RunPod.
-
-## Dépannage
-
-### Erreur : "No HF_TOKEN provided"
-
-- Vérifiez que vous avez bien ajouté `HF_TOKEN` dans les variables d'environnement de votre template RunPod.
-- Vérifiez que votre token est valide sur huggingface.co.
-
-### Erreur : "Failed to download audio"
-
-- Vérifiez que l'URL de l'audio est accessible publiquement.
-- Vérifiez que le format audio est supporté (mp3, wav, m4a, etc.).
-
-### Erreur : "CUDA out of memory"
-
-- Réduisez `batch_size` dans votre requête (ex: `"batch_size": 4`).
-- Utilisez un modèle plus petit (ex: `medium` au lieu de `large-v2`).
-- Utilisez un GPU avec plus de VRAM.
-
-### Premier lancement très lent
-
-- C'est normal ! Les modèles sont téléchargés au premier lancement.
-- Pour accélérer, reconstruisez l'image Docker avec `--build-arg HF_TOKEN=...`.
-
-### Erreur : "pull access denied" sur RunPod
-
-- L'image Docker n'a pas été poussée ou le repository est privé.
-- Vérifiez que vous avez fait `docker push` après le build.
-- Vérifiez que le repository est **public** sur Docker Hub (Settings → Visibility → Public).
-
-### Erreur SSL lors du build Docker
-
-- Si vous avez des erreurs SSL avec `download.pytorch.org`, le Dockerfile inclut déjà les corrections nécessaires (`trusted-host`, `certifi`).
-- Si le problème persiste, vérifiez votre connexion internet et réessayez.
-
-### Erreur "xet" ou téléchargement Hugging Face qui échoue
-
-- Le Dockerfile désactive automatiquement le téléchargeur expérimental `xet` de Hugging Face qui peut causer des problèmes dans Docker.
-- Les variables `HF_HUB_ENABLE_HF_TRANSFER=0` et `HF_HUB_DISABLE_XET=1` sont déjà configurées.
-
 ## Structure du projet
 
 ```
-Whisperx-Runpod/
-├── handler.py           # Handler RunPod Serverless (point d'entrée)
-├── download_models.py   # Script de pré-téléchargement des modèles
-├── Dockerfile           # Image Docker pour RunPod
-├── test_transcription.py # Script de test Python
+├── handler.py           # Handler RunPod (point d'entrée)
+├── download_models.py   # Pré-téléchargement des modèles
+├── Dockerfile           # Image Docker
+├── test_transcription.py # Script de test
 ├── .env.example         # Template de configuration
-├── audio.mp3            # Fichier audio de test
-└── README.md            # Cette documentation
+└── audio.mp3            # Fichier audio de test
 ```
 
-| Fichier | Description |
-|---------|-------------|
-| `handler.py` | Handler principal qui reçoit les requêtes RunPod, télécharge l'audio, lance la transcription WhisperX avec alignement et diarisation |
-| `download_models.py` | Télécharge les modèles Whisper, alignement et diarisation pendant le build Docker pour accélérer le cold start |
-| `Dockerfile` | Construit l'image Docker avec CUDA 12.1, Python 3.10, WhisperX et toutes les dépendances |
-| `test_transcription.py` | Script CLI pour tester votre endpoint RunPod depuis votre machine locale |
-| `.env.example` | Template pour configurer `RUNPOD_API_KEY` et `RUNPOD_ENDPOINT_ID` |
+## Modèles Whisper
 
-## Notes techniques
+| Modèle | VRAM | Recommandation |
+|--------|------|----------------|
+| `large-v3` | ~10 GB | **Recommandé** - Meilleure qualité |
+| `large-v2` | ~10 GB | Défaut dans l'image |
+| `medium` | ~5 GB | Bon compromis vitesse/qualité |
+| `small` | ~2 GB | Rapide, qualité correcte |
 
-### Architecture
+## Dépannage
 
-Le projet utilise :
-- **Base image** : `nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04`
-- **Python** : 3.10
-- **WhisperX** : Dernière version stable
-- **PyTorch** : Version CUDA 12.1 (réinstallée après WhisperX pour garantir le support GPU)
+| Erreur | Solution |
+|--------|----------|
+| "No HF_TOKEN provided" | Ajoutez `HF_TOKEN` dans les variables d'environnement |
+| "Failed to download audio" | Vérifiez que l'URL est accessible publiquement |
+| "CUDA out of memory" | Réduisez `batch_size` ou utilisez un modèle plus petit |
 
-### Temps de build
+## Liens utiles
 
-- **Sans modèles pré-téléchargés** : ~5-10 minutes
-- **Avec modèles pré-téléchargés** : ~15-25 minutes (selon la connexion)
-
-### Taille de l'image Docker
-
-- **Sans modèles** : ~8-10 GB
-- **Avec modèles large-v2** : ~15-18 GB
-
-### Sécurité du token Hugging Face
-
-- Le token HF passé avec `--build-arg` est **uniquement utilisé pendant le build** pour télécharger les modèles
-- Le token n'est **PAS stocké dans l'image Docker** finale
-- Au runtime, le token est fourni via les variables d'environnement RunPod (sécurisées)
-
-Pour vérifier que le token n'est pas dans l'image :
-```bash
-docker inspect votre-image:latest | grep -i "hf_"
-```
-
-Résultat attendu (token vide, c'est normal) :
-```
-"HF_TOKEN": ""
-"HF_HUB_ENABLE_HF_TRANSFER": "0"
-"HF_HUB_DISABLE_XET": "1"
-```
-
-### Variables d'environnement de l'image
-
-| Variable | Valeur | Description |
-|----------|--------|-------------|
-| `HF_TOKEN` | `""` (vide) | Token Hugging Face - vide dans l'image, fourni au runtime via RunPod |
-| `HF_HUB_ENABLE_HF_TRANSFER` | `0` | Désactive le téléchargeur rapide HF (incompatible avec Docker) |
-| `HF_HUB_DISABLE_XET` | `1` | Désactive le téléchargeur expérimental xet (cause des erreurs réseau) |
-| `WHISPER_MODEL` | `large-v2` | Modèle Whisper par défaut (modifiable via RunPod) |
-
-### Téléchargement des modèles : HTTPS vs XET
-
-Par défaut, Hugging Face utilise des téléchargeurs expérimentaux (XET, hf_transfer) qui peuvent causer des problèmes dans Docker :
-
-```
-RuntimeError: CAS service error : ReqwestMiddleware Error: Request failed after 5 retries
-```
-
-**Solution appliquée** : On force l'utilisation du téléchargeur **HTTPS classique** :
-
-| Méthode | Avantages | Inconvénients |
-|---------|-----------|---------------|
-| **XET** (expérimental) | Plus rapide | Erreurs réseau dans Docker, problèmes SSL |
-| **HTTPS classique** | Stable, fiable, compatible partout | Un peu plus lent |
-
-Les variables `HF_HUB_ENABLE_HF_TRANSFER=0` et `HF_HUB_DISABLE_XET=1` désactivent les téléchargeurs expérimentaux et forcent l'utilisation de HTTPS, garantissant un téléchargement fiable des modèles pendant le build Docker.
-
-### Langues supportées
-
-WhisperX supporte de nombreuses langues avec alignement automatique :
-- **Alignement natif** : `en`, `fr`, `de`, `es`, `it`
-- **Via Hugging Face** : Nombreuses autres langues (voir [alignment.py](https://github.com/m-bain/whisperX/blob/main/whisperx/alignment.py))
-
-### Formats audio supportés
-
-Tous les formats supportés par FFmpeg : `mp3`, `wav`, `m4a`, `flac`, `ogg`, `webm`, etc.
-
-## Coûts estimés
-
-- **Construction Docker** : Gratuit (sur votre machine)
-- **RunPod Serverless** :
-  - RTX 4090 : ~$0.00044/seconde
-  - RTX 3090 : ~$0.00031/seconde
-  - Transcription d'un audio de 10 min : ~$0.02-0.05
-
-## Support
-
-- **Ce projet** : [github.com/Fasterious/Whisperx-Runpod](https://github.com/Fasterious/Whisperx-Runpod)
-- **WhisperX** : [github.com/m-bain/whisperX](https://github.com/m-bain/whisperX)
-- **RunPod** : [docs.runpod.io](https://docs.runpod.io)
+- [WhisperX](https://github.com/m-bain/whisperX)
+- [RunPod Documentation](https://docs.runpod.io)
 
 ## Licence
 
-MIT License - Libre d'utilisation et de modification.
+MIT License
