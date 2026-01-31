@@ -145,6 +145,7 @@ curl "https://api.runpod.ai/v2/ENDPOINT_ID/status/JOB_ID" \
 | "No HF_TOKEN provided" | Ajoutez `HF_TOKEN` dans les variables d'environnement |
 | "Failed to download audio" | Vérifiez que l'URL est accessible publiquement |
 | "CUDA out of memory" | Réduisez `batch_size` ou utilisez un modèle plus petit |
+| Erreur "xet" ou téléchargement HF qui échoue pendant le build | Le Dockerfile désactive le téléchargeur expérimental XET et utilise HTTPS classique (plus stable) |
 
 ## Liens utiles
 
