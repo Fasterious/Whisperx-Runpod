@@ -243,6 +243,52 @@ Pour changer de modèle, modifiez la variable d'environnement `WHISPER_MODEL` da
 - C'est normal ! Les modèles sont téléchargés au premier lancement.
 - Pour accélérer, reconstruisez l'image Docker avec `--build-arg HF_TOKEN=...`.
 
+### Erreur : "pull access denied" sur RunPod
+
+- L'image Docker n'a pas été poussée ou le repository est privé.
+- Vérifiez que vous avez fait `docker push` après le build.
+- Vérifiez que le repository est **public** sur Docker Hub (Settings → Visibility → Public).
+
+### Erreur SSL lors du build Docker
+
+- Si vous avez des erreurs SSL avec `download.pytorch.org`, le Dockerfile inclut déjà les corrections nécessaires (`trusted-host`, `certifi`).
+- Si le problème persiste, vérifiez votre connexion internet et réessayez.
+
+### Erreur "xet" ou téléchargement Hugging Face qui échoue
+
+- Le Dockerfile désactive automatiquement le téléchargeur expérimental `xet` de Hugging Face qui peut causer des problèmes dans Docker.
+- Les variables `HF_HUB_ENABLE_HF_TRANSFER=0` et `HF_HUB_DISABLE_XET=1` sont déjà configurées.
+
+## Notes techniques
+
+### Architecture
+
+Le projet utilise :
+- **Base image** : `nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04`
+- **Python** : 3.10
+- **WhisperX** : Dernière version stable
+- **PyTorch** : Version CUDA 12.1 (réinstallée après WhisperX pour garantir le support GPU)
+
+### Temps de build
+
+- **Sans modèles pré-téléchargés** : ~5-10 minutes
+- **Avec modèles pré-téléchargés** : ~15-25 minutes (selon la connexion)
+
+### Taille de l'image Docker
+
+- **Sans modèles** : ~8-10 GB
+- **Avec modèles large-v2** : ~15-18 GB
+
+### Langues supportées
+
+WhisperX supporte de nombreuses langues avec alignement automatique :
+- **Alignement natif** : `en`, `fr`, `de`, `es`, `it`
+- **Via Hugging Face** : Nombreuses autres langues (voir [alignment.py](https://github.com/m-bain/whisperX/blob/main/whisperx/alignment.py))
+
+### Formats audio supportés
+
+Tous les formats supportés par FFmpeg : `mp3`, `wav`, `m4a`, `flac`, `ogg`, `webm`, etc.
+
 ## Coûts estimés
 
 - **Construction Docker** : Gratuit (sur votre machine)
