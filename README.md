@@ -293,7 +293,27 @@ Le projet utilise :
 - Le token HF passé avec `--build-arg` est **uniquement utilisé pendant le build** pour télécharger les modèles
 - Le token n'est **PAS stocké dans l'image Docker** finale
 - Au runtime, le token est fourni via les variables d'environnement RunPod (sécurisées)
-- Vous pouvez vérifier avec `docker history` ou `docker inspect` que le token n'apparaît pas
+
+Pour vérifier que le token n'est pas dans l'image :
+```bash
+docker inspect votre-image:latest | grep -i "hf_"
+```
+
+Résultat attendu (token vide, c'est normal) :
+```
+"HF_TOKEN": ""
+"HF_HUB_ENABLE_HF_TRANSFER": "0"
+"HF_HUB_DISABLE_XET": "1"
+```
+
+### Variables d'environnement de l'image
+
+| Variable | Valeur | Description |
+|----------|--------|-------------|
+| `HF_TOKEN` | `""` (vide) | Token Hugging Face - vide dans l'image, fourni au runtime via RunPod |
+| `HF_HUB_ENABLE_HF_TRANSFER` | `0` | Désactive le téléchargeur rapide HF (incompatible avec Docker) |
+| `HF_HUB_DISABLE_XET` | `1` | Désactive le téléchargeur expérimental xet (cause des erreurs réseau) |
+| `WHISPER_MODEL` | `large-v2` | Modèle Whisper par défaut (modifiable via RunPod) |
 
 ### Langues supportées
 
