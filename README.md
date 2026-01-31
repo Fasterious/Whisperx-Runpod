@@ -50,17 +50,26 @@ docker login
 
 > **Note pour les utilisateurs Mac (Apple Silicon)** : L'option `--platform linux/amd64` est obligatoire car RunPod utilise des GPUs NVIDIA sur architecture x86_64.
 
-**Option A : Sans pré-téléchargement des modèles** (image plus légère, modèles téléchargés au premier lancement)
+**Option A : Image légère** (modèles téléchargés au premier lancement sur RunPod)
 
 ```bash
 docker build --platform linux/amd64 -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
 ```
 
-**Option B : Avec pré-téléchargement des modèles** (recommandé, démarrage plus rapide)
+- Image ~8-10 GB
+- Premier lancement : ~5-10 min (téléchargement des modèles)
+- Lancements suivants : rapides (modèles en cache sur le worker)
+
+**Option B : Image complète avec modèles pré-intégrés** (recommandé)
 
 ```bash
 docker build --platform linux/amd64 --build-arg HF_TOKEN=hf_votre_token_ici -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
 ```
+
+- Image ~15-18 GB (modèles Whisper + alignement + diarisation inclus)
+- **Tous les modèles sont dans l'image Docker** → pas de téléchargement sur RunPod
+- Démarrage immédiat, même sur un nouveau worker (cold start minimal)
+- Build plus long (~15-25 min) mais déploiement instantané
 
 > Remplacez `VOTRE_USERNAME_DOCKER` par votre nom d'utilisateur Docker Hub  
 > Remplacez `hf_votre_token_ici` par votre token Hugging Face
