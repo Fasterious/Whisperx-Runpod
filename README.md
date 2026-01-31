@@ -1,5 +1,7 @@
 # WhisperX sur RunPod - Guide Complet
 
+[![GitHub](https://img.shields.io/github/stars/Fasterious/Whisperx-Runpod?style=social)](https://github.com/Fasterious/Whisperx-Runpod)
+
 Ce guide vous permet de déployer WhisperX avec diarisation (identification des locuteurs) sur RunPod Serverless.
 
 ## Prérequis
@@ -31,10 +33,11 @@ Vous devez accepter les conditions pour ces deux modèles :
 
 ## Étape 2 : Construction de l'image Docker
 
-### 2.1 Ouvrir un terminal dans le dossier du projet
+### 2.1 Cloner le repository
 
 ```bash
-cd /Users/arnaudcrepieux/Cursor/Whisperx-Runpod-2
+git clone https://github.com/Fasterious/Whisperx-Runpod.git
+cd Whisperx-Runpod
 ```
 
 ### 2.2 Se connecter à Docker Hub
@@ -45,20 +48,22 @@ docker login
 
 ### 2.3 Construire l'image Docker
 
-**Option A : Sans pré-téléchargement des modèles de diarisation** (plus petit, modèles téléchargés au premier lancement)
+> **Note pour les utilisateurs Mac (Apple Silicon)** : L'option `--platform linux/amd64` est obligatoire car RunPod utilise des GPUs NVIDIA sur architecture x86_64.
+
+**Option A : Sans pré-téléchargement des modèles** (image plus légère, modèles téléchargés au premier lancement)
 
 ```bash
-docker build -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
+docker build --platform linux/amd64 -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
 ```
 
 **Option B : Avec pré-téléchargement des modèles** (recommandé, démarrage plus rapide)
 
 ```bash
-docker build --build-arg HF_TOKEN=hf_votre_token_ici -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
+docker build --platform linux/amd64 --build-arg HF_TOKEN=hf_votre_token_ici -t VOTRE_USERNAME_DOCKER/whisperx-runpod:latest .
 ```
 
-> ⚠️ Remplacez `VOTRE_USERNAME_DOCKER` par votre nom d'utilisateur Docker Hub
-> ⚠️ Remplacez `hf_votre_token_ici` par votre token Hugging Face
+> Remplacez `VOTRE_USERNAME_DOCKER` par votre nom d'utilisateur Docker Hub  
+> Remplacez `hf_votre_token_ici` par votre token Hugging Face
 
 ### 2.4 Pousser l'image sur Docker Hub
 
@@ -248,5 +253,10 @@ Pour changer de modèle, modifiez la variable d'environnement `WHISPER_MODEL` da
 
 ## Support
 
-- WhisperX : [github.com/m-bain/whisperX](https://github.com/m-bain/whisperX)
-- RunPod : [docs.runpod.io](https://docs.runpod.io)
+- **Ce projet** : [github.com/Fasterious/Whisperx-Runpod](https://github.com/Fasterious/Whisperx-Runpod)
+- **WhisperX** : [github.com/m-bain/whisperX](https://github.com/m-bain/whisperX)
+- **RunPod** : [docs.runpod.io](https://docs.runpod.io)
+
+## Licence
+
+MIT License - Libre d'utilisation et de modification.
