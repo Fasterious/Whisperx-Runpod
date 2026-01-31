@@ -55,12 +55,15 @@ COPY download_models.py /app/download_models.py
 ENV WHISPER_MODEL=large-v2
 
 # Pre-download models during build for faster cold start
+# HF_TOKEN is only used during build (ARG) and NOT stored in the image (security)
 ARG HF_TOKEN=""
-ENV HF_TOKEN=${HF_TOKEN}
 # Disable xet downloader (causes issues in Docker) and use classic HTTP
 ENV HF_HUB_ENABLE_HF_TRANSFER=0
 ENV HF_HUB_DISABLE_XET=1
-RUN python download_models.py
+RUN HF_TOKEN=${HF_TOKEN} python download_models.py
+
+# HF_TOKEN will be provided at runtime via RunPod environment variables
+ENV HF_TOKEN=""
 
 # Expose port (optional, for health checks)
 EXPOSE 8000

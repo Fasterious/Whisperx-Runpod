@@ -288,6 +288,13 @@ Le projet utilise :
 - **Sans modèles** : ~8-10 GB
 - **Avec modèles large-v2** : ~15-18 GB
 
+### Sécurité du token Hugging Face
+
+- Le token HF passé avec `--build-arg` est **uniquement utilisé pendant le build** pour télécharger les modèles
+- Le token n'est **PAS stocké dans l'image Docker** finale
+- Au runtime, le token est fourni via les variables d'environnement RunPod (sécurisées)
+- Vous pouvez vérifier avec `docker history` ou `docker inspect` que le token n'apparaît pas
+
 ### Langues supportées
 
 WhisperX supporte de nombreuses langues avec alignement automatique :
